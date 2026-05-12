@@ -1,48 +1,43 @@
 import telebot
 from telebot import types
+import http.server
+import socketserver
+import threading
+import os
 
-# التوكن الخاص بك الذي زودتني به
-API_TOKEN = '8788666843:AAEMthDUv8sNO8nF1rg0fzVo3eYi6EB_K24'
+# --- إعداد منفذ وهمي لمنصة Render لضمان استمرار البوت ---
+def run_dummy_server():
+    PORT = int(os.environ.get("PORT", 8080))
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print(f"Serving at port {PORT}")
+        httpd.serve_forever()
 
-bot = telebot.TeleBot(API_TOKEN)
+# تشغيل السيرفر الوهمي في خلفية الكود
+threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# 1. استجابة أمر البدء وتجهيز الأزرار
+# --- إعداد البوت الخاص بك ---
+TOKEN = '8788666843:AAEMthDUv8sNO8nF1rg0fzVo3eYi6EB_K24'
+bot = telebot.TeleBot(TOKEN)
+
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def start(message):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    item1 = types.KeyboardButton("🌿 علوم العترة")
-    item2 = types.KeyboardButton("📖 حديث الكساء")
-    item3 = types.KeyboardButton("🎓 الإمام جعفر الصادق")
-    item4 = types.KeyboardButton("⚖️ حقائق الصدق")
-    
-    markup.add(item1, item2, item3, item4)
-    
-    welcome_text = (
-        f"مرحباً بك يا {message.from_user.first_name} في بوت (حقائق الصدق) 🌿\n\n"
-        "هذا البوت مخصص لنشر علوم أهل البيت عليهم السلام والبحث في الحقائق التاريخية.\n"
-        "اختر من القائمة أدناه لتبدأ الرحلة:"
-    )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
+    btn1 = types.KeyboardButton('علوم العترة')
+    btn2 = types.KeyboardButton('حديث الكساء')
+    btn3 = types.KeyboardButton('الإمام جعفر الصادق')
+    markup.add(btn1, btn2, btn3)
+    bot.send_message(message.chat.id, "أهلاً بك في بوت حقائق الصدق. اختر أحد الأقسام التالية:", reply_markup=markup)
 
-# 2. برمجة ما يحدث عند الضغط على كل زر
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
-    if message.text == "🌿 علوم العترة":
-        bot.send_message(message.chat.id, "قريباً: سيتم عرض أبحاث وشروحات عن علوم العترة الطاهرة.")
-        
-    elif message.text == "📖 حديث الكساء":
-        text_ksaa = (
-            "عن جابر بن عبد الله الأنصاري عن فاطمة الزهراء (عليها السلام) قالت: "
-            "دخل علي أبي رسول الله في بعض الأيام فقال: السلام عليك يا فاطمة..."
-        )
-        bot.send_message(message.chat.id, text_ksaa)
-        
-    elif message.text == "🎓 الإمام جعفر الصادق":
-        info_sadiq = "الإمام جعفر بن محمد الصادق (عليه السلام) هو مؤسس المذهب الجعفري وناشر علوم الطب والكيمياء والفقه."
-        bot.send_message(message.chat.id, info_sadiq)
-        
-    elif message.text == "⚖️ حقائق الصدق":
-        bot.send_message(message.chat.id, "هذا القسم مخصص لمشروعك 'كشف الحقائق التاريخية' الذي تعمل عليه حالياً.")
+    if message.text == 'علوم العترة':
+        bot.reply_to(message, "قريباً سيتم إضافة محتوى علوم العترة هنا.")
+    elif message.text == 'حديث الكساء':
+        bot.reply_to(message, "قريباً سيتم إضافة شرح حديث الكساء.")
+    elif message.text == 'الإمام جعفر الصادق':
+        bot.reply_to(message, "قريباً سيتم إضافة سيرة الإمام الصادق عليه السلام.")
 
-# 3. تشغيل البوت باستمرار
-bot.polling(none_stop=True)
+# تشغيل البوت
+print("البوت يعمل الآن...")
+bot.infinity_polling()
