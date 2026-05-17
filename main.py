@@ -4,12 +4,13 @@ import http.server
 import socketserver
 import threading
 import os
-import random
 
 # --- إعداد منفذ Render لضمان استمرارية البوت ---
 def run_dummy_server():
     PORT = int(os.environ.get("PORT", 8080))
     Handler = http.server.SimpleHTTPRequestHandler
+    # السماح بإعادة استخدام المنفذ لتجنب أخطاء التعليق
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         httpd.serve_forever()
 
@@ -21,25 +22,32 @@ bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    btn1 = types.KeyboardButton('المحطة 1: عصر الانسجام')
-    btn2 = types.KeyboardButton('المحطة 2: الأئمة والآل')
-    btn3 = types.KeyboardButton('المحطة 3: حقيقة المحاكمة')
-    btn4 = types.KeyboardButton('المحطة 4: تلف الأمة المعاصر')
-    btn5 = types.KeyboardButton('بيان المشروع والمصادر')
+    # استخدام الأزرار الشفافة Inline لتفادي مشاكل التعليق ومطابقة النصوص
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    
+    btn1 = types.InlineKeyboardButton('🏛️ المحطة 1: عصر الانسجام', callback_data='station_1')
+    btn2 = types.InlineKeyboardButton('💡 المحطة 2: الأئمة والآل', callback_data='station_2')
+    btn3 = types.InlineKeyboardButton('⚖️ المحطة 3: حقيقة المحاكمة', callback_data='station_3')
+    btn4 = types.InlineKeyboardButton('⚠️ المحطة 4: تلف الأمة المعاصر', callback_data='station_4')
+    btn5 = types.InlineKeyboardButton('📜 بيان المشروع والمصادر', callback_data='project_info')
+    
     markup.add(btn1, btn2, btn3, btn4, btn5)
     
     welcome_msg = (
-        "✨ بوت (حقائق الصدق) | مشروع كشف الحقائق ✨\n\n"
+        "✨ **بوت (حقائق الصدق) | مشروع كشف الحقائق** ✨\n\n"
         "مرحباً بك في الموسوعة الرقمية لتصحيح المسار التاريخي للأمة.\n"
-        "هدفنا: إظهار الحقيقة المجردة بعيداً عن الجفاء وتزييف الفكر."
+        "هدفنا: إظهار الحقيقة المجردة بعيداً عن الجفاء وتزييف الفكر.\n\n"
+        "👇 اضغط على أحد الأزرار أدناه لتصفح المحطات والمصادر:"
     )
-    bot.send_message(message.chat.id, welcome_msg, reply_markup=markup)
+    bot.send_message(message.chat.id, welcome_msg, reply_markup=markup, parse_mode='Markdown')
 
-@bot.message_handler(func=lambda message: True)
-def handle_messages(message):
+# --- معالج الضغط على الأزرار الشفافة ---
+@bot.callback_query_handler(func=lambda call: True)
+def callback_listener(call):
+    # إشعار تليجرام بأن الضغطة تمت بنجاح لمنع تعليق الزر
+    bot.answer_callback_query(call.id)
     
-    if message.text == 'المحطة 1: عصر الانسجام':
+    if call.data == 'station_1':
         msg = (
             "🏛️ **المحطة الأولى: 500 عام من الاستقرار الذهبي**\n\n"
             "قبل ظهور فتنة المنهاج، عاشت الأمة في تناغم تام:\n"
@@ -48,9 +56,9 @@ def handle_messages(message):
             "✅ ساد 'أدب الإجماع' واختفى 'شذوذ المنهاج'.\n\n"
             "📚 **المراجع:** تاريخ الإسلام (الذهبي)، البداية والنهاية (ابن كثير)."
         )
-        bot.reply_to(message, msg, parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, msg, parse_mode='Markdown')
 
-    elif message.text == 'المحطة 2: الأئمة والآل':
+    elif call.data == 'station_2':
         msg = (
             "💡 **المحطة الثانية: مواقف الأئمة الأربعة العملية**\n\n"
             "الأئمة الأربعة لم يكونوا مجرد فقهاء، بل كانوا جنوداً في نصرة العترة:\n"
@@ -59,9 +67,9 @@ def handle_messages(message):
             "• **مالك:** تلمذ على الصادق وأجله إجلالاً عظيماً.\n\n"
             "📚 **المراجع:** سير أعلام النبلاء (الذهبي)، وفيات الأعيان (ابن خلكان)."
         )
-        bot.reply_to(message, msg, parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, msg, parse_mode='Markdown')
 
-    elif message.text == 'المحطة 3: حقيقة المحاكمة':
+    elif call.data == 'station_3':
         msg = (
             "⚖️ **المحطة الثالثة: كشف مستور محاكمات ابن تيمية**\n\n"
             "سجن ابن تيمية كان بقرار 'سني جماعي' من قضاة المذاهب الأربعة:\n"
@@ -69,9 +77,9 @@ def handle_messages(message):
             "• **السبب الحقيقي:** حماية عقيدة الأمة ووحدتها من الفكر المنفرد.\n\n"
             "📚 **المراجع:** الدرر الكامنة (ابن حجر)، دفع شبه من شبه وتمرد (الحصني الدمشقي)."
         )
-        bot.reply_to(message, msg, parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, msg, parse_mode='Markdown')
 
-    elif message.text == 'المحطة 4: تلف الأمة المعاصر':
+    elif call.data == 'station_4':
         msg = (
             "⚠️ **المحطة الرابعة: الواقع المعاصر و'تلف' الأمة**\n\n"
             "كيف تحول الفكر التيمي إلى أداة لتمزيق الأمة اليوم؟\n"
@@ -80,16 +88,17 @@ def handle_messages(message):
             "3️⃣ **فوضى الفتوى:** ضرب إجماع المذاهب الأربعة بدعوى 'اتباع الدليل' لتمكين الجهلاء من الفتوى.\n\n"
             "📚 **المراجع:** إحياء المقبور (الغماري)، مقالات الكوثري، فتاوى الأزهر الشريف."
         )
-        bot.reply_to(message, msg, parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, msg, parse_mode='Markdown')
 
-    elif message.text == 'بيان المشروع والمصادر':
+    elif call.data == 'project_info':
         msg = (
             "📜 **بيان مشروع كشف الحقائق**\n\n"
             "نحن لا ننتصر لفريق، بل ننتصر للحقيقة.\n"
             "الميزان الصحيح: **عترةٌ تُحب، ومذاهبُ تُتبع**.\n\n"
             "🔗 لزيارة القناة ومتابعة السلاسل البحثية كاملة، تفضل بالانضمام إلينا."
         )
-        bot.reply_to(message, msg, parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, msg, parse_mode='Markdown')
 
+# تنظيف أي تداخلات قديمة للويب هوك وإطلاق البوت بثبات
 bot.remove_webhook()
-bot.infinity_polling()
+bot.infinity_polling(timeout=10, long_polling_timeout=5)
